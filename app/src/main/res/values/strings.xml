@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">自动下一步</string>
     <string name="accessibility_service_description">识别目标应用中的“下一步”按钮并自动点击。仅在您主动开启无障碍服务后运行。</string>
+    <string name="foreground_service_subtype">持续执行用户授权的自动化点击</string>
+    <string name="foreground_service_channel_name">自动点击服务</string>
+    <string name="foreground_service_notification">自动下一步正在运行</string>
 </resources>
