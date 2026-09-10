@@ -12,6 +12,9 @@ gradle :app:assembleDebug
 
 生成的 APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。
 
+## 屏幕图
+![img.png](screen-pic/img.png)
+
 ## 使用
 
 1. 安装 APK 并打开“自动下一步”。
