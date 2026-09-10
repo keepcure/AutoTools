@@ -151,7 +151,7 @@ private fun AutoToolsScreen() {
                 ) { Text("打开耗电管理设置", fontSize = 12.sp) }
             }
 
-            InfoCard("目标应用") {
+            InfoCard("配置信息（可选）") {
                 OutlinedTextField(
                     value = targetPackage,
                     onValueChange = { targetPackage = it },
@@ -160,9 +160,7 @@ private fun AutoToolsScreen() {
                     shape = RoundedCornerShape(12.dp),
                     label = { Text("目标应用包名") }
                 )
-            }
-
-            InfoCard("间隔时间") {
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = clickInterval,
                     onValueChange = { clickInterval = it.filter(Char::isDigit) },
@@ -170,7 +168,7 @@ private fun AutoToolsScreen() {
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    label = { Text("点击间隔（500 - 3000 毫秒）") }
+                    label = { Text("点击间隔时间（500 - 3000 毫秒）") }
                 )
             }
 
@@ -183,18 +181,20 @@ private fun AutoToolsScreen() {
                 Text("保存目标应用", fontSize = 16.sp)
             }
 
-            Text(
-                text = status.ifEmpty { if (serviceEnabled) "服务状态：已开启" else "服务状态：未开启，请先打开无障碍设置。" },
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(22.dp)).padding(18.dp),
-                color = Color(0xFF5C5C64),
-                fontSize = 16.sp
-            )
+            InfoCard(null) {
+                Text(
+                    text = status.ifEmpty { if (serviceEnabled) "服务状态：已开启" else "服务状态：未开启，请先打开无障碍设置。" },
+                    color = Color(0xFF5C5C64),
+                    fontSize = 16.sp
+                )
+            }
+
         }
     }
 }
 
 @androidx.compose.runtime.Composable
-private fun InfoCard(title: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+private fun InfoCard(title: String?, content: @androidx.compose.runtime.Composable () -> Unit) {
     var expanded by remember { mutableStateOf(true) }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -203,17 +203,19 @@ private fun InfoCard(title: String, content: @androidx.compose.runtime.Composabl
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, modifier = Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text(if (expanded) "⌃" else "⌄", fontSize = 20.sp, color = Color(0xFF55555D))
+            if (title != null){
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(title, modifier = Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(if (expanded) "⌃" else "⌄", fontSize = 20.sp, color = Color(0xFF55555D))
+                }
             }
             if (expanded) {
-                Spacer(Modifier.height(8.dp))
+                if (title != null) Spacer(Modifier.height(8.dp))
                 content()
             }
         }
