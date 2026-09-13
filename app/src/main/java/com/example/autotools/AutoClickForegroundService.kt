@@ -18,6 +18,7 @@ class AutoClickForegroundService : Service() {
     private var loopRunning = false
     private var workerThread: Thread? = null
     private var nextButtonTurn = true
+    private var sequenceIndex = 0
     var count = 1
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -25,12 +26,16 @@ class AutoClickForegroundService : Service() {
         const val TAG = "AutoTools"
         const val ACTION_TICK = "com.example.autotools.ACTION_CLICK_TICK"
         const val EXTRA_NEXT_BUTTON = "next_button"
+        const val EXTRA_ACTION = "action"
+        const val ACTION_NEXT = 0
+        const val ACTION_FAST_FORWARD = 1
         private const val CHANNEL_ID = "auto_click"
         private const val NOTIFICATION_ID = 1001
         private const val CLICK_INTERVAL_KEY = "click_interval_ms"
         private const val MIN_CLICK_INTERVAL_MS = 500L
         private const val MAX_CLICK_INTERVAL_MS = 3000L
         private const val DEFAULT_CLICK_INTERVAL_MS = 1500L
+        private const val CLICK_SEQUENCE_KEY = "click_sequence"
     }
 
     override fun onCreate() {
@@ -50,7 +55,15 @@ class AutoClickForegroundService : Service() {
             while (loopRunning) {
                 try {
                     Log.i(TAG, "onStartCommand${count++}")
-                    sendTick(nextButtonTurn)
+                    val sequence = if (getSharedPreferences("auto_tools", MODE_PRIVATE)
+                            .getInt(CLICK_SEQUENCE_KEY, 0) == 1) {
+                        intArrayOf(ACTION_NEXT, ACTION_FAST_FORWARD, ACTION_FAST_FORWARD)
+                    } else {
+                        intArrayOf(ACTION_NEXT, ACTION_FAST_FORWARD)
+                    }
+                    val action = sequence[sequenceIndex % sequence.size]
+                    sequenceIndex++
+                    sendTick(action)
                     nextButtonTurn = !nextButtonTurn
                 } catch (ex: Exception) {
                     Log.e(TAG, "loop error", ex)
@@ -69,13 +82,14 @@ class AutoClickForegroundService : Service() {
             .coerceIn(MIN_CLICK_INTERVAL_MS, MAX_CLICK_INTERVAL_MS)
     }
 
-    private fun sendTick(nextButton: Boolean) {
+    private fun sendTick(action: Int) {
         mainHandler.post {
-            Log.i(TAG, "sending tick: $nextButton")
+            Log.i(TAG, "sending action tick: $action")
             sendBroadcast(
                 Intent(ACTION_TICK)
                     .setPackage(packageName)
-                    .putExtra(EXTRA_NEXT_BUTTON, nextButton)
+                    .putExtra(EXTRA_ACTION, action)
+                    .putExtra(EXTRA_NEXT_BUTTON, action == ACTION_NEXT)
             )
         }
     }

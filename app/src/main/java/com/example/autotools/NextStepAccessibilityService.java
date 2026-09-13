@@ -36,7 +36,8 @@ public class NextStepAccessibilityService extends AccessibilityService {
             }
             boolean nextButton = intent.getBooleanExtra(
                     AutoClickForegroundService.EXTRA_NEXT_BUTTON, true);
-            if (nextButton) {
+            int action = intent.getIntExtra(AutoClickForegroundService.EXTRA_ACTION, nextButton ? 0 : 1);
+            if (action == AutoClickForegroundService.ACTION_NEXT) {
                 performCoordinateGesture(NEXT_BUTTON_X_RATIO, NEXT_BUTTON_Y_RATIO, "next");
             } else {
                 performCoordinateGesture(FAST_FORWARD_X_RATIO, FAST_FORWARD_Y_RATIO, "fast-forward");

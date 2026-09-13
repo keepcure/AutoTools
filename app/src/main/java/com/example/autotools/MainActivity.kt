@@ -30,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -50,10 +52,12 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import java.nio.file.WatchEvent
 
 private const val PREFS = "auto_tools"
 private const val TARGET_PACKAGE = "target_package"
 private const val CLICK_INTERVAL = "click_interval_ms"
+private const val CLICK_SEQUENCE = "click_sequence"
 private const val DEFAULT_TARGET_PACKAGE = "com.leniu.dpcqln.vivo"
 private const val MIN_CLICK_INTERVAL_MS = 500
 private const val MAX_CLICK_INTERVAL_MS = 3000
@@ -76,6 +80,8 @@ private fun AutoToolsScreen() {
     var clickInterval by remember {
         mutableStateOf(preferences.getInt(CLICK_INTERVAL, DEFAULT_CLICK_INTERVAL_MS).toString())
     }
+    var clickSequence by remember { mutableStateOf(preferences.getInt(CLICK_SEQUENCE, 0)) }
+    var sequenceMenuExpanded by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var serviceEnabled by remember { mutableStateOf(false) }
 
@@ -87,6 +93,7 @@ private fun AutoToolsScreen() {
         preferences.edit {
             putString(TARGET_PACKAGE, targetPackage.trim().ifEmpty { DEFAULT_TARGET_PACKAGE })
                 .putInt(CLICK_INTERVAL, normalizedInterval)
+                .putInt(CLICK_SEQUENCE, clickSequence)
         }
         status = "目标应用设置已保存"
     }
@@ -117,7 +124,9 @@ private fun AutoToolsScreen() {
                     fontWeight = FontWeight.Bold
                 )
                 Surface(
-                    modifier = Modifier.width(50.dp).height(50.dp),
+                    modifier = Modifier
+                        .width(50.dp)
+                        .height(50.dp),
                     shape = RoundedCornerShape(18.dp),
                     color = Color.White,
                     shadowElevation = 6.dp
@@ -141,17 +150,21 @@ private fun AutoToolsScreen() {
                         saveSettings()
                         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
-                    modifier = Modifier.weight(1f).height(58.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(58.dp),
                     shape = RoundedCornerShape(30.dp)
                 ) { Text("打开无障碍设置", fontSize = 12.sp) }
                 OutlinedButton(
                     onClick = { openBatterySettings(context) },
-                    modifier = Modifier.weight(1f).height(58.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(58.dp),
                     shape = RoundedCornerShape(30.dp)
                 ) { Text("打开耗电管理设置", fontSize = 12.sp) }
             }
 
-            InfoCard("配置信息（可选）") {
+            InfoCard("配置信息") {
                 OutlinedTextField(
                     value = targetPackage,
                     onValueChange = { targetPackage = it },
@@ -160,7 +173,9 @@ private fun AutoToolsScreen() {
                     shape = RoundedCornerShape(12.dp),
                     label = { Text("目标应用包名") }
                 )
-                Spacer(Modifier.height(8.dp))
+
+                Spacer(Modifier.height(5.dp))
+
                 OutlinedTextField(
                     value = clickInterval,
                     onValueChange = { clickInterval = it.filter(Char::isDigit) },
@@ -168,33 +183,70 @@ private fun AutoToolsScreen() {
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    label = { Text("点击间隔时间（500 - 3000 毫秒）") }
+                    label = { Text("点击间隔（500 - 3000 毫秒）") }
                 )
+
+                Spacer(Modifier.height(6.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(Color.Transparent),
+                    border = BorderStroke(1.dp, Color.DarkGray)
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text("点击序列", color = Color(0xFF5F5F69), fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { sequenceMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(if (clickSequence == 0) "下一步 → 快进" else "下一步 → 快进 → 快进")
+                        }
+                        DropdownMenu(
+                            expanded = sequenceMenuExpanded,
+                            onDismissRequest = { sequenceMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("下一步 → 快进") },
+                                onClick = { clickSequence = 0; sequenceMenuExpanded = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("下一步 → 快进 → 快进") },
+                                onClick = { clickSequence = 1; sequenceMenuExpanded = false }
+                            )
+                        }
+                    }
+                }
+
             }
 
             Button(
                 onClick = { saveSettings() },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
                 shape = RoundedCornerShape(34.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B48E8))
             ) {
-                Text("保存目标应用", fontSize = 16.sp)
+                Text("保存配置信息", fontSize = 16.sp)
             }
 
-            InfoCard(null) {
-                Text(
-                    text = status.ifEmpty { if (serviceEnabled) "服务状态：已开启" else "服务状态：未开启，请先打开无障碍设置。" },
-                    color = Color(0xFF5C5C64),
-                    fontSize = 16.sp
-                )
-            }
-
+            Text(
+                text = status.ifEmpty { if (serviceEnabled) "服务状态：已开启" else "服务状态：未开启，请先打开无障碍设置。" },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(22.dp))
+                    .padding(18.dp),
+                color = Color(0xFF5C5C64),
+                fontSize = 16.sp
+            )
         }
     }
 }
 
 @androidx.compose.runtime.Composable
-private fun InfoCard(title: String?, content: @androidx.compose.runtime.Composable () -> Unit) {
+private fun InfoCard(title: String, content: @androidx.compose.runtime.Composable () -> Unit) {
     var expanded by remember { mutableStateOf(true) }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -203,19 +255,17 @@ private fun InfoCard(title: String?, content: @androidx.compose.runtime.Composab
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            if (title != null){
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(title, modifier = Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(if (expanded) "⌃" else "⌄", fontSize = 20.sp, color = Color(0xFF55555D))
-                }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, modifier = Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(if (expanded) "⌃" else "⌄", fontSize = 20.sp, color = Color(0xFF55555D))
             }
             if (expanded) {
-                if (title != null) Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
                 content()
             }
         }
